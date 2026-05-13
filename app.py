@@ -1,14 +1,17 @@
 import streamlit as st
 import google.generativeai as genai
-from PIL import Image
-from streamlit_paste_button import paste_image_button
 
 # =========================================================
-# 1. API 키 및 최신 엔진 설정 (Gemini 2.0-Flash)
+# 수정된 부분: 금고(Secrets)에서 안전하게 키를 가져옵니다.
 # =========================================================
-# 아래 큰따옴표 안에 선생님의 API 키를 꼭 넣어주세요!
-GENAI_API_KEY = "AIzaSyAThhEIDCg-naNQnTv7JfkathkCsls29aA"
-genai.configure(api_key=GENAI_API_KEY)
+try:
+    # 스트림릿 금고에서 키를 호출
+    GENAI_API_KEY = st.secrets["GENAI_API_KEY"]
+    genai.configure(api_key=GENAI_API_KEY)
+except Exception as e:
+    st.error("금고(Secrets)에 API 키가 설정되지 않았습니다. 설정을 확인해주세요.")
+
+# 모델 설정 (Gemini 2.5 Flash)
 model = genai.GenerativeModel(model_name='gemini-2.5-flash')
 
 # 웹 페이지 설정
