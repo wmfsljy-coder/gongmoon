@@ -107,7 +107,27 @@ with col2:
             """
             with st.spinner("전문가 정밀 교정 중..."):
                 try:
-                    response = model.generate_content([prompt, user_content] if not isinstance(user_content, str) else prompt + "\n\n" + user_content)
-                    st.markdown(response.text)
+                   # 기존: response = model.generate_content(...)
+                   # 수정: stream=True 옵션을 추가하고 루프를 돌립니다.
+
+with col2:
+    st.subheader("✅ 전문가 교정 결과")
+    if st.button("전문가 정밀 검토 시작", type="primary", use_container_width=True):
+        if user_content:
+            with st.spinner("행정 지침 대조 중..."):
+                try:
+                    # stream=True 설정
+                    response = model.generate_content(
+                        [prompt, user_content] if not isinstance(user_content, str) else prompt + "\n\n" + user_content,
+                        stream=True 
+                    )
+                    
+                    # 빈 공간을 먼저 만들고 글자를 하나씩 채워 넣습니다.
+                    placeholder = st.empty()
+                    full_text = ""
+                    for chunk in response:
+                        full_text += chunk.text
+                        placeholder.markdown(full_text) # 실시간으로 글자가 타자 치듯 나타납니다.
+                        
                 except Exception as e:
                     st.error(f"실행 오류: {e}")
