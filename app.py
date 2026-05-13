@@ -110,7 +110,7 @@ with col2:
                    # 기존: response = model.generate_content(...)
                    # 수정: stream=True 옵션을 추가하고 루프를 돌립니다.
 
-with col2:
+with col3:
     st.subheader("✅ 전문가 교정 결과")
     
     # 버튼 클릭 시 실행
