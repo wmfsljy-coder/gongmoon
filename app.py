@@ -12,15 +12,48 @@ try:
 except Exception as e:
     st.error("금고(Secrets)에 API 키가 설정되지 않았습니다.")
 
-model = genai.GenerativeModel(
-    model_name='gemini-3.1-flash-lite',
-    generation_config={
-        "temperature": 0.0,  
-        "top_p": 0.95,
-        "top_k": 40,
-        "max_output_tokens": 8192,
-    }
-)
+# 사용할 모델 순서 리스트 (가장 좋은 것부터 예비 순으로)
+model_list = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-2.0-flash-lite']
+
+if st.button("전문가 정밀 검토 시작", type="primary", use_container_width=True):
+    if user_content:
+        placeholder = st.empty()
+        full_text = "" 
+        
+        with st.spinner("최적의 엔진을 찾아 교정을 시작합니다..."):
+            success = False
+            for model_name in model_list: # 리스트에 있는 모델을 순서대로 시도
+                try:
+                    # 현재 순서의 모델로 다시 초기화
+                    current_model = genai.GenerativeModel(
+                        model_name=model_name,
+                        generation_config={"temperature": 0.0, "max_output_tokens": 8192}
+                    )
+                    
+                    content_list = [prompt, user_content] if not isinstance(user_content, str) else [prompt + "\n\n" + user_content]
+                    
+                    # 스트리밍 호출
+                    response = current_model.generate_content(content_list, stream=True)
+                    
+                    for chunk in response:
+                        if chunk.text:
+                            full_text += chunk.text
+                            placeholder.text(full_text) # 텍스트 보존을 위해 .text() 사용
+                    
+                    success = True
+                    break # 성공하면 루프를 빠져나감
+                    
+                except Exception as e:
+                    # 429(한도초과) 에러 발생 시 다음 모델로 전환
+                    if "429" in str(e):
+                        st.warning(f"⚠️ {model_name} 엔진이 혼잡하여 예비 엔진으로 전환합니다...")
+                        continue # 다음 모델 시도
+                    else:
+                        st.error(f"⚠️ 오류 발생: {e}")
+                        break
+            
+            if not success:
+                st.error("❌ 모든 예비 엔진이 현재 사용 불가능합니다. 잠시 후 다시 시도해 주세요.")
 
 # =========================================================
 # 2. 웹 페이지 UI 설정
