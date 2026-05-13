@@ -35,13 +35,17 @@ col1, col2 = st.columns(2)
 with col1:
     st.subheader("📥 검토할 내용")
     input_type = st.radio("입력 방식 선택", ["글자로 입력", "이미지 붙여넣기"])
-    user_content = st.text_area("내용 입력", height=500, placeholder="공문 내용을 여기에 붙여넣으세요.") if input_type == "글자로 입력" else None
-    if input_type == "이미지 붙여넣기":
+    
+    # 입력 방식에 따른 데이터 처리
+    if input_type == "글자로 입력":
+        user_content = st.text_area("내용 입력", height=500, placeholder="공문 내용을 여기에 붙여넣으세요.")
+    else:
         paste_result = paste_image_button(label="📋 공문 캡처 후 클릭하여 붙여넣기")
         if paste_result and paste_result.image_data is not None:
             user_content = paste_result.image_data
             st.image(user_content, caption="붙여넣은 이미지", use_container_width=True)
-
+        else:
+            user_content = None
 with col2:
     st.subheader("✅ 전문가 교정 결과")
     if st.button("전문가 정밀 검토 시작", type="primary", use_container_width=True):
