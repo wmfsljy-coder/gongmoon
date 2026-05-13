@@ -13,7 +13,7 @@ try:
 except Exception as e:
     st.error("금고(Secrets) 설정을 확인해주세요.")
 
-# 모델 설정 (Gemini 1.5 Flash)
+# 모델 설정 (Gemini 2.5 Flash-lite)
 model = genai.GenerativeModel(model_name='gemini-2.5-flash-lite')
 
 # 웹 페이지 설정
