@@ -13,8 +13,8 @@ try:
 except Exception as e:
     st.error("금고(Secrets) 설정을 확인해주세요.")
 
-# 모델 설정 (Gemini 2.0 Flash)
-model = genai.GenerativeModel(model_name='gemini-2.0-flash')
+# 모델 설정 (Gemini 1.5 Flash)
+model = genai.GenerativeModel(model_name='gemini-1.5-flash')
 
 # 웹 페이지 설정
 st.set_page_config(page_title="공문서 교정기", layout="wide")
