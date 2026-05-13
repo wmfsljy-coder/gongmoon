@@ -1,15 +1,17 @@
 import streamlit as st
 import google.generativeai as genai
+from PIL import Image
+# 에러의 원인: 아래 줄이 반드시 있어야 이미지 붙여넣기 기능이 작동합니다!
+from streamlit_paste_button import paste_image_button 
 
 # =========================================================
-# 수정된 부분: 금고(Secrets)에서 안전하게 키를 가져옵니다.
+# 1. 보안 금고(Secrets)에서 API 키 안전하게 가져오기
 # =========================================================
 try:
-    # 스트림릿 금고에서 키를 호출
     GENAI_API_KEY = st.secrets["GENAI_API_KEY"]
     genai.configure(api_key=GENAI_API_KEY)
 except Exception as e:
-    st.error("금고(Secrets)에 API 키가 설정되지 않았습니다. 설정을 확인해주세요.")
+    st.error("금고(Secrets) 설정을 확인해주세요.")
 
 # 모델 설정 (Gemini 2.5 Flash)
 model = genai.GenerativeModel(model_name='gemini-2.5-flash')
