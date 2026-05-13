@@ -14,7 +14,15 @@ except Exception as e:
     st.error("금고(Secrets) 설정을 확인해주세요.")
 
 # 모델 설정 (Gemini 3.1 Flash-lite)
-model = genai.GenerativeModel(model_name='gemini-3.1-flash-lite')
+model = genai.GenerativeModel(
+    model_name='gemini-3.1-flash-lite',
+    generation_config={
+        "temperature": 0.0,  # 0에 가까울수록 매번 동일한 결과를 출력합니다.
+        "top_p": 0.95,
+        "top_k": 40,
+        "max_output_tokens": 8192,
+    }
+)
 
 # 웹 페이지 설정
 st.set_page_config(page_title="공문서 교정기", layout="wide")
@@ -39,7 +47,8 @@ with col2:
     if st.button("전문가 정밀 검토 시작", type="primary", use_container_width=True):
         if user_content:
             prompt = """
-            당신은 대한민국 행정 전문가입니다. 아래 지침에 따라 공문을 정교하게 교정하십시오. 
+           "당신은 엄격한 행정 감사관입니다. 제시된 지침 외에 어떠한 문구 수정이나 창의적인 해석도 배제하고, 오직 규정된 형식으로만 출력하십시오. 동일한 입력에는 항상 동일한 구조의 답변을 반환해야 합니다.
+            아래 지침에 따라 공문을 정교하게 교정하십시오. 
             [중요 지침] 답변 내용에와 같은 출처 표시를 절대로 포함하지 마십시오. 
             오직 최종 교정된 공문서 내용만 출력하십시오.
             ---
