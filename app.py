@@ -1,73 +1,28 @@
 import streamlit as st
 import google.generativeai as genai
 from streamlit_paste_button import paste_image_button 
-import re  # 결과를 제목/본문/이유로 자르기 위해 추가된 모듈입니다.
+import re  
 
 # =========================================================
-# 1. 보안 설정 및 모델 초기화
+# 1. 보안 설정 및 API 키 초기화
 # =========================================================
+st.set_page_config(page_title="공문서 교정기", layout="wide")
+
 try:
     GENAI_API_KEY = st.secrets["GENAI_API_KEY"]
     genai.configure(api_key=GENAI_API_KEY)
 except Exception as e:
     st.error("금고(Secrets)에 API 키가 설정되지 않았습니다.")
 
-# 사용할 모델 순서 리스트 (가장 좋은 것부터 예비 순으로)
-model_list = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-2.0-flash-lite']
-
-if st.button("전문가 정밀 검토 시작", type="primary", use_container_width=True):
-    if user_content:
-        placeholder = st.empty()
-        full_text = "" 
-        
-        with st.spinner("최적의 엔진을 찾아 교정을 시작합니다..."):
-            success = False
-            for model_name in model_list: # 리스트에 있는 모델을 순서대로 시도
-                try:
-                    # 현재 순서의 모델로 다시 초기화
-                    current_model = genai.GenerativeModel(
-                        model_name=model_name,
-                        generation_config={"temperature": 0.0, "max_output_tokens": 8192}
-                    )
-                    
-                    content_list = [prompt, user_content] if not isinstance(user_content, str) else [prompt + "\n\n" + user_content]
-                    
-                    # 스트리밍 호출
-                    response = current_model.generate_content(content_list, stream=True)
-                    
-                    for chunk in response:
-                        if chunk.text:
-                            full_text += chunk.text
-                            placeholder.text(full_text) # 텍스트 보존을 위해 .text() 사용
-                    
-                    success = True
-                    break # 성공하면 루프를 빠져나감
-                    
-                except Exception as e:
-                    # 429(한도초과) 에러 발생 시 다음 모델로 전환
-                    if "429" in str(e):
-                        st.warning(f"⚠️ {model_name} 엔진이 혼잡하여 예비 엔진으로 전환합니다...")
-                        continue # 다음 모델 시도
-                    else:
-                        st.error(f"⚠️ 오류 발생: {e}")
-                        break
-            
-            if not success:
-                st.error("❌ 모든 예비 엔진이 현재 사용 불가능합니다. 잠시 후 다시 시도해 주세요.")
-
 # =========================================================
 # 2. 웹 페이지 UI 설정
 # =========================================================
-st.set_page_config(page_title="공문서 교정기", layout="wide")
-
 st.title("📄 공문서 교정기")
 st.caption("선생님의 업무 경감을 위한 프로그램입니다.")
 
-# =========================================================
-# 3. 메인 로직
-# =========================================================
 col1, col2 = st.columns(2)
 
+# --- [왼쪽: 입력부] ---
 with col1:
     st.subheader("📥 검토할 내용")
     input_type = st.radio("입력 방식 선택", ["글자로 입력", "이미지 붙여넣기"])
@@ -82,6 +37,7 @@ with col1:
         else:
             user_content = None
 
+# --- [오른쪽: 출력부 및 핵심 로직] ---
 with col2:
     st.subheader("✅ 전문가 교정 결과")
     
@@ -90,9 +46,10 @@ with col2:
             placeholder = st.empty()
             full_text = "" 
             
-            with st.spinner("행정 지침 대조 및 교정 중..."):
-                try:
-                    prompt = """
+            with st.spinner("최적의 엔진을 찾아 교정을 시작합니다..."):
+                
+                # 선생님의 초정밀 행정 지침 프롬프트
+                prompt = """
 당신은 엄격하고 센스 있는 행정 감사관입니다. 원본 문서의 문맥을 완벽히 파악하여, 오직 규정된 형식으로만 출력하십시오.
 
 **[출력 형식 (매우 중요)]**
@@ -160,20 +117,41 @@ with col2:
 - 붙임 파일의 수직 정렬 규정을 적용하였습니다.
 [이유끝]
 """
-                    content_list = [prompt, user_content] if not isinstance(user_content, str) else [prompt + "\n\n" + user_content]
-                    
-                    response = model.generate_content(content_list, stream=True)
-                    
-                    # 1단계: 실시간 스트리밍 (원시 텍스트 출력)
-                    for chunk in response:
-                        if chunk.text:
-                            full_text += chunk.text
-                            placeholder.text(full_text)
-                    
-                    # 2단계: 출력이 끝나면 임시 화면을 지우고 예쁘게 잘라서 보여주기
+                # 순차적 적용을 위한 모델 리스트
+                model_list = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-2.0-flash-lite']
+                success = False
+                
+                content_list = [prompt, user_content] if not isinstance(user_content, str) else [prompt + "\n\n" + user_content]
+
+                # 모델 순차 시도 (Fallback 로직)
+                for model_name in model_list:
+                    try:
+                        current_model = genai.GenerativeModel(
+                            model_name=model_name,
+                            generation_config={"temperature": 0.0, "max_output_tokens": 8192}
+                        )
+                        
+                        response = current_model.generate_content(content_list, stream=True)
+                        
+                        # 1단계: 실시간 스트리밍 (원시 텍스트 출력)
+                        for chunk in response:
+                            if chunk.text:
+                                full_text += chunk.text
+                                placeholder.text(full_text)
+                        
+                        success = True
+                        break # 성공 시 루프 탈출
+                        
+                    except Exception as e:
+                        # 에러 발생 시 다음 모델로 전환
+                        st.warning(f"⚠️ {model_name} 엔진 혼잡. 다음 엔진으로 전환합니다...")
+                        full_text = "" # 텍스트가 섞이지 않도록 초기화
+                        continue 
+
+                # 2단계: 모든 처리가 끝난 후 화면 가공 및 출력
+                if success:
                     placeholder.empty()
                     
-                    # 정규표현식(re)을 사용해 제목, 본문, 이유를 추출합니다.
                     title_match = re.search(r'\[제목시작\](.*?)\[제목끝\]', full_text, re.DOTALL)
                     body_match = re.search(r'\[본문시작\](.*?)\[본문끝\]', full_text, re.DOTALL)
                     reason_match = re.search(r'\[이유시작\](.*?)\[이유끝\]', full_text, re.DOTALL)
@@ -182,19 +160,21 @@ with col2:
                     body_text = body_match.group(1).strip() if body_match else full_text
                     reason_text = reason_match.group(1).strip() if reason_match else "수정 이유를 생성하지 못했습니다."
                     
-                    # 화면 출력 (st.code를 사용하면 오른쪽 위에 '복사' 버튼이 자동 생성됩니다)
-                    st.markdown("### 📌 교정된 제목")
-                    st.code(title_text, language="text")
-                    
-                    st.markdown("### 📝 교정된 본문")
-                    st.code(body_text, language="text")
-                    
-                    st.markdown("### 💡 주요 수정 내역 및 사유")
-                    st.info(reason_text)
-                            
-                except Exception as e:
-                    st.error(f"⚠️ 실행 중 오류가 발생했습니다: {e}")
-                    if "429" in str(e):
-                        st.warning("현재 서버 요청 한도를 초과했습니다. 1분 뒤에 다시 시도해 주세요.")
+                    # 최종 출력 (복사 버튼 포함)
+                    if title_match and body_match:
+                        st.markdown("### 📌 교정된 제목")
+                        st.code(title_text, language="text")
+                        
+                        st.markdown("### 📝 교정된 본문")
+                        st.code(body_text, language="text")
+                        
+                        st.markdown("### 💡 주요 수정 내역 및 사유")
+                        st.info(reason_text)
+                    else:
+                        st.warning("규격대로 추출되지 않았습니다. 원문을 표시합니다.")
+                        st.text(full_text)
+                        
+                else:
+                    st.error("❌ 모든 예비 엔진이 현재 혼잡합니다. 잠시 후 다시 시도해 주세요.")
         else:
             st.warning("검토할 내용을 입력하거나 이미지를 붙여넣어 주세요.")
