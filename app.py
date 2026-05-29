@@ -18,7 +18,7 @@ except Exception as e:
 # 2. 웹 페이지 UI 설정
 # =========================================================
 st.title("📄 공문서 교정기")
-st.caption("선생님의 업무 경감을 위한 프로그램입니다. 수정사항은 wmfsljy@gmail.com 으로 보내주세요")
+st.caption("선생님의 업무 경감을 위한 프로그램입니다. 수정사항은 wmfsljy@gmail.com 으로 교정 화면을 캡쳐해서 보내주세요")
 
 col1, col2 = st.columns(2)
 
