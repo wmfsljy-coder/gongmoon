@@ -19,7 +19,7 @@ except Exception as e:
 # =========================================================
 st.title("📄 공문서 교정기")
 st.caption("선생님의 업무 경감을 위한 프로그램입니다.") 
-st.caption("수정요청은 wmfsljy@gmail.com 으로 교정 결과(화면 캡쳐)와 함께 보내주세요")
+st.caption("수정요청은 wmfsljy@gmail.com 으로 교정 결과(화면 캡쳐)와 함께 보내주시면 반영하겠습니다")
 
 col1, col2 = st.columns(2)
 
